@@ -16,6 +16,7 @@ repositories {
     maven { name = "Meteor"; url = "https://maven.meteordev.org/releases" }
     maven { name = "MeteorSnapshots"; url = "https://maven.meteordev.org/snapshots" }
     maven { name = "Modrinth"; url = "https://api.modrinth.com/maven" }
+    maven { url = "https://maven.seedfinding.com/" }
 }
 
 dependencies {
@@ -26,6 +27,9 @@ dependencies {
 
     // Meteor Client
     modImplementation "meteordevelopment:meteor-client:${project.meteor_version}"
+    
+    // Baritone (用于自动寻路和挖掘)
+    modCompileOnly "meteordevelopment:baritone:${project.baritone_version}"
 }
 
 tasks {

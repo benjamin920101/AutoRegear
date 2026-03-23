@@ -3,12 +3,12 @@
   "id": "autoregear",
   "version": "${version}",
   "name": "AutoRegear",
-  "description": "自动放置和打开潜影盒以取回装备",
+  "description": "自动从潜影盒中获取指定物品。自动放盒，取物，打盒，捡盒",
   "authors": [
     "00011152"
   ],
   "contact": {
-    "repo": "https://github.com/jieranyishenmorengui-creator/meteor-addon-template"
+    "repo": "https://github.com/00011152/AutoRegear"
   },
   "icon": "assets/template/icon.png",
   "environment": "client",
@@ -18,7 +18,7 @@
     ]
   },
   "mixins": [
-    "addon-template.mixins.json"
+    "autoregear.mixins.json"
   ],
   "custom": {
     "meteor-client:color": "225,25,25"

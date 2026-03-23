@@ -1,20 +1,22 @@
 package com.example.addon;
 
-import com.example.addon.modules.AutoRegear;
-import com.mojang.logging.LogUtils;
+import com.example.addon.modules.ShulkerBoxItemFetcher;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
-import meteordevelopment.meteorclient.systems.modules.Categories;
+import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import org.slf4j.Logger;
 
 public class AutoRegearAddon extends MeteorAddon {
-    public static final Logger LOG = LogUtils.getLogger();
+    public static final Category CATEGORY = new Category("AutoRegear");
 
     @Override
     public void onInitialize() {
-        LOG.info("Initializing AutoRegear");
-        Modules.get().add(new AutoRegear());
+        Modules.get().add(new ShulkerBoxItemFetcher());
+    }
+
+    @Override
+    public void onRegisterCategories() {
+        Modules.registerCategory(CATEGORY);
     }
 
     @Override
@@ -24,6 +26,6 @@ public class AutoRegearAddon extends MeteorAddon {
 
     @Override
     public GithubRepo getRepo() {
-        return new GithubRepo("MeteorDevelopment", "meteor-addon-template");
+        return new GithubRepo("00011152", "AutoRegear");
     }
 }
