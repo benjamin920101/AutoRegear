@@ -4,6 +4,7 @@ import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.utils.BetterBlockPos;
 import com.example.addon.AutoRegearAddon;
+import com.example.addon.utils.ItemStackData;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.pathing.NopPathManager;
 import meteordevelopment.meteorclient.pathing.PathManagers;
@@ -30,16 +31,167 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.ArrayList;
+import java.util.OptionalInt;
+
 public class ShulkerBoxItemFetcher extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgSettings = settings.createGroup("Settings");
+    private final SettingGroup sgTake = settings.createGroup("Smart Take");
     private final IBaritone baritone;
 
-    // Settings
-    private final Setting<Item> targetItem = sgGeneral.add(new ItemSetting.Builder()
-        .name("Target Item")
-        .description("The item to fetch from the shulker box.")
-        .defaultValue(Items.COBBLESTONE)
+    private final Setting<Boolean> take = sgTake.add(new BoolSetting.Builder()
+        .name("take")
+        .description("Enable smart item taking with thresholds.")
+        .defaultValue(true)
+        .build()
+    );
+
+    private final Setting<Boolean> smartTake = sgTake.add(new BoolSetting.Builder()
+        .name("smart-take")
+        .description("Use smart taking with item-specific thresholds.")
+        .defaultValue(true)
+        .visible(() -> take.get())
+        .build()
+    );
+
+    private final Setting<Integer> crystalThreshold = sgTake.add(new IntSetting.Builder()
+        .name("crystal-threshold")
+        .description("Target end crystal count.")
+        .defaultValue(256)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> expThreshold = sgTake.add(new IntSetting.Builder()
+        .name("exp-threshold")
+        .description("Target XP bottle count.")
+        .defaultValue(256)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> totemThreshold = sgTake.add(new IntSetting.Builder()
+        .name("totem-threshold")
+        .description("Target totem count.")
+        .defaultValue(6)
+        .min(0)
+        .sliderMax(36)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> goldenAppleThreshold = sgTake.add(new IntSetting.Builder()
+        .name("golden-apple-threshold")
+        .description("Target golden apple count.")
+        .defaultValue(64)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> splashPotionThreshold = sgTake.add(new IntSetting.Builder()
+        .name("splash-potion-threshold")
+        .description("Target splash potion count.")
+        .defaultValue(1)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> fireworkRocketThreshold = sgTake.add(new IntSetting.Builder()
+        .name("firework-rocket-threshold")
+        .description("Target firework rocket count.")
+        .defaultValue(64)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> obsidianThreshold = sgTake.add(new IntSetting.Builder()
+        .name("obsidian-threshold")
+        .description("Target obsidian count.")
+        .defaultValue(64)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> webThreshold = sgTake.add(new IntSetting.Builder()
+        .name("web-threshold")
+        .description("Target cobweb count.")
+        .defaultValue(64)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> glowstoneThreshold = sgTake.add(new IntSetting.Builder()
+        .name("glowstone-threshold")
+        .description("Target glowstone count.")
+        .defaultValue(128)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> anchorThreshold = sgTake.add(new IntSetting.Builder()
+        .name("anchor-threshold")
+        .description("Target respawn anchor count.")
+        .defaultValue(128)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> pearlThreshold = sgTake.add(new IntSetting.Builder()
+        .name("pearl-threshold")
+        .description("Target ender pearl count.")
+        .defaultValue(16)
+        .min(0)
+        .sliderMax(64)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> pistonThreshold = sgTake.add(new IntSetting.Builder()
+        .name("piston-threshold")
+        .description("Target piston and sticky piston count.")
+        .defaultValue(64)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> redstoneThreshold = sgTake.add(new IntSetting.Builder()
+        .name("redstone-threshold")
+        .description("Target redstone block count.")
+        .defaultValue(64)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
+        .build()
+    );
+
+    private final Setting<Integer> bedThreshold = sgTake.add(new IntSetting.Builder()
+        .name("bed-threshold")
+        .description("Target bed count.")
+        .defaultValue(256)
+        .min(0)
+        .sliderMax(512)
+        .visible(() -> take.get() && smartTake.get())
         .build()
     );
 
@@ -80,16 +232,9 @@ public class ShulkerBoxItemFetcher extends Module {
         .build()
     );
 
-    // Internal state
     private enum State {
-        SEARCHING_SHULKER,
-        PLACING_SHULKER,
-        OPENING_SHULKER,
-        EXTRACTING_ITEMS,
-        CLOSING_CONTAINER,
-        BREAKING_SHULKER,
-        PICKING_UP_SHULKER,
-        FINISHED
+        SEARCHING_SHULKER, PLACING_SHULKER, OPENING_SHULKER, EXTRACTING_ITEMS,
+        CLOSING_CONTAINER, BREAKING_SHULKER, PICKING_UP_SHULKER, FINISHED
     }
 
     private State currentState = State.SEARCHING_SHULKER;
@@ -99,8 +244,8 @@ public class ShulkerBoxItemFetcher extends Module {
     private ItemStack shulkerBoxItem = null;
     private boolean isProcessing = false;
     private int stateTimeout = 0;
-    private static final int MAX_STATE_TIMEOUT = 100; // 5 seconds at 20 TPS
-    private boolean hasRotated = false; // Track if we've rotated to look at the shulker box
+    private static final int MAX_STATE_TIMEOUT = 100;
+    private boolean hasRotated = false;
 
     public ShulkerBoxItemFetcher() {
         super(AutoRegearAddon.CATEGORY, "shulker-box-item-fetcher", "Automatically fetch items from shulker boxes. Places, opens, extracts, breaks, and picks up the shulker box.");
@@ -130,9 +275,10 @@ public class ShulkerBoxItemFetcher extends Module {
         isProcessing = false;
         stateTimeout = 0;
         hasRotated = false;
+        currentTargetItem = null;
 
         if (logActions.get()) {
-            info("Starting to fetch " + targetItem.get().getName().getString() + " from shulker box");
+            info("Starting smart item fetch from shulker box");
         }
     }
 
@@ -154,19 +300,14 @@ public class ShulkerBoxItemFetcher extends Module {
 
         if (isProcessing) return;
 
-        // Check for state timeout
         stateTimeout++;
         if (stateTimeout > MAX_STATE_TIMEOUT) {
-            if (logActions.get()) {
-                error("State timeout: " + currentState.name() + " (waited " + stateTimeout + " ticks)");
-            }
+            if (logActions.get()) error("State timeout: " + currentState.name() + " (" + stateTimeout + " ticks)");
             changeState(State.FINISHED);
             return;
         }
 
-        if (debugMode.get()) {
-            info("Current state: " + currentState.name() + " (Tick: " + tickCounter + ", Timeout: " + stateTimeout + ")");
-        }
+        if (debugMode.get()) info("State: " + currentState.name() + " (Timeout: " + stateTimeout + ")");
 
         switch (currentState) {
             case SEARCHING_SHULKER -> searchForShulkerBox();
@@ -183,7 +324,6 @@ public class ShulkerBoxItemFetcher extends Module {
     private void searchForShulkerBox() {
         if (logActions.get()) info("Searching for shulker box in inventory...");
 
-        // Search for shulker box in inventory
         for (int i = 0; i < mc.player.getInventory().size(); i++) {
             ItemStack stack = mc.player.getInventory().getStack(i);
             if (stack.isEmpty()) continue;
@@ -191,45 +331,70 @@ public class ShulkerBoxItemFetcher extends Module {
             if (stack.getItem() instanceof BlockItem blockItem) {
                 Block block = blockItem.getBlock();
                 if (block instanceof ShulkerBoxBlock) {
-                    // Check if this shulker box contains the target item
-                    if (containsTargetItem(stack)) {
+                    if (debugMode.get()) debugItemStack(stack, i);
+
+                    Item neededItem = findNeededItemInShulker(stack);
+                    if (neededItem != null) {
                         shulkerSlot = i;
                         shulkerBoxItem = stack.copy();
+                        currentTargetItem = neededItem;
                         changeState(State.PLACING_SHULKER);
-                        if (logActions.get()) {
-                            info("Found shulker box with target item at slot: " + i);
-                        }
+                        if (logActions.get()) info("Found shulker box with " + neededItem.getName().getString() + " at slot: " + i);
                         return;
                     }
                 }
             }
         }
 
-        // No suitable shulker box found
-
-        error("No shulker box containing " + targetItem.get().getName().getString() + " found");
-
+        error("No shulker box containing needed items found");
         changeState(State.FINISHED);
     }
 
-    private boolean containsTargetItem(ItemStack shulkerBox) {
-        // Check container component for contained items (1.21+ data components)
-        ContainerComponent container = shulkerBox.get(DataComponentTypes.CONTAINER);
-        if (container == null) return false;
+    private Item currentTargetItem = null;
 
-        // Check each item in the container
+    private Item findNeededItemInShulker(ItemStack shulkerBox) {
+        ContainerComponent container = shulkerBox.get(DataComponentTypes.CONTAINER);
+        if (container == null) return null;
+
+        Item neededItem = null;
+        int highestPriority = -1;
+
         for (ItemStack stack : container.stream().toList()) {
-            if (!stack.isEmpty() && stack.getItem() == targetItem.get()) {
-                return true;
+            if (!stack.isEmpty()) {
+                Item item = stack.getItem();
+                int threshold = getTargetThreshold(item);
+
+                if (threshold == Integer.MAX_VALUE) {
+                    if (debugMode.get()) info("[DEBUG] Skipping " + item.getName().getString() + " (no threshold)");
+                    continue;
+                }
+
+                int currentCount = countTargetItemInInventory(item);
+                int neededCount = Math.max(0, threshold - currentCount);
+
+                if (debugMode.get()) {
+                    info("[DEBUG] " + item.getName().getString() + " | Have: " + currentCount + " | Threshold: " + threshold + " | Need: " + neededCount);
+                }
+
+                if (neededCount > 0) {
+                    int priority = threshold;
+                    if (neededItem == null || priority < highestPriority) {
+                        neededItem = item;
+                        highestPriority = priority;
+                        if (debugMode.get()) info("[DEBUG] Found needed item: " + item.getName().getString() + " (priority: " + priority + ")");
+                    }
+                }
             }
         }
-        return false;
+
+        if (neededItem != null && debugMode.get()) info("[DEBUG] Selected: " + neededItem.getName().getString());
+
+        return neededItem;
     }
 
     private void placeShulkerBox() {
         if (logActions.get()) info("Placing shulker box...");
 
-        // Find a suitable position to place the shulker box
         BlockPos playerPos = mc.player.getBlockPos();
         BlockPos placePos = findSuitablePlacePosition(playerPos);
 
@@ -239,45 +404,30 @@ public class ShulkerBoxItemFetcher extends Module {
             return;
         }
 
-        // Switch to shulker box in hotbar
         if (shulkerSlot >= 9) {
-            // Move shulker box to hotbar
             moveItemToHotbar(shulkerSlot);
             return;
         }
 
-        // Select the shulker box
         mc.player.getInventory().selectedSlot = shulkerSlot;
-
-        // Look at the placement position
         lookAtBlock(placePos);
-
-        // Place the shulker box
         BlockUtils.place(placePos, new FindItemResult(shulkerSlot, 1), true, 10);
 
         shulkerPos = placePos;
         changeState(State.OPENING_SHULKER);
 
-        if (logActions.get()) {
-            info("Shulker box placed at: " + placePos.toShortString());
-        }
+        if (logActions.get()) info("Shulker box placed at: " + placePos.toShortString());
     }
 
     private BlockPos findSuitablePlacePosition(BlockPos playerPos) {
-        // Get player's facing direction
         Direction playerFacing = mc.player.getHorizontalFacing();
 
-        // Priority order: facing direction first, then adjacent sides, then diagonals
-        // 1. First try the direction player is facing
         BlockPos facingPos = playerPos.offset(playerFacing);
         if (isValidPlacePosition(facingPos)) {
-            if (debugMode.get()) {
-                info("Found suitable position (facing direction): " + facingPos.toShortString());
-            }
+            if (debugMode.get()) info("Found suitable position (facing): " + facingPos.toShortString());
             return facingPos;
         }
 
-        // 2. Try adjacent horizontal directions (not diagonal)
         Direction[] adjacentDirections = {
             playerFacing.rotateYClockwise(),
             playerFacing.rotateYCounterclockwise(),
@@ -287,41 +437,31 @@ public class ShulkerBoxItemFetcher extends Module {
         for (Direction dir : adjacentDirections) {
             BlockPos testPos = playerPos.offset(dir);
             if (isValidPlacePosition(testPos)) {
-                if (debugMode.get()) {
-                    info("Found suitable position (adjacent): " + testPos.toShortString());
-                }
+                if (debugMode.get()) info("Found suitable position (adjacent): " + testPos.toShortString());
                 return testPos;
             }
         }
 
-        // 3. Try above and below current position
-        for (int y = 1; y >= -1; y -= 2) { // +1 then -1
+        for (int y = 1; y >= -1; y -= 2) {
             BlockPos testPos = playerPos.add(0, y, 0);
             if (isValidPlacePosition(testPos)) {
-                if (debugMode.get()) {
-                    info("Found suitable position (vertical): " + testPos.toShortString());
-                }
+                if (debugMode.get()) info("Found suitable position (vertical): " + testPos.toShortString());
                 return testPos;
             }
         }
 
-        // 4. Finally try diagonal positions if no direct adjacent positions work
         for (int distance = 1; distance <= 3; distance++) {
             for (int x = -distance; x <= distance; x++) {
                 for (int z = -distance; z <= distance; z++) {
-                    // Skip positions we already checked (direct adjacent)
-                    if ((Math.abs(x) == 1 && z == 0) || (x == 0 && Math.abs(z) == 1) || (x == 0 && z == 0)) {
-                        continue;
-                    }
+                    if ((Math.abs(x) == 1 && z == 0) || (x == 0 && Math.abs(z) == 1) || (x == 0 && z == 0)) continue;
 
-                    // Only check positions at the current distance boundary
                     if (Math.abs(x) == distance || Math.abs(z) == distance) {
                         for (int y = -1; y <= 1; y++) {
                             BlockPos testPos = playerPos.add(x, y, z);
                             if (isValidPlacePosition(testPos)) {
                                 if (debugMode.get()) {
                                     double dist = Math.sqrt(x * x + y * y + z * z);
-                                    info("Found suitable position (diagonal): " + testPos.toShortString() + " (distance: " + String.format("%.1f", dist) + ")");
+                                    info("Found suitable position (diagonal): " + testPos.toShortString() + " (dist: " + String.format("%.1f", dist) + ")");
                                 }
                                 return testPos;
                             }
@@ -331,9 +471,7 @@ public class ShulkerBoxItemFetcher extends Module {
             }
         }
 
-        if (logActions.get()) {
-            error("No suitable placement position found within 3 blocks");
-        }
+        if (logActions.get()) error("No suitable placement position found within 3 blocks");
         return null;
     }
 
@@ -344,30 +482,15 @@ public class ShulkerBoxItemFetcher extends Module {
     }
 
     private void moveItemToHotbar(int sourceSlot) {
-        // Find empty hotbar slot
         for (int i = 0; i < 9; i++) {
             if (mc.player.getInventory().getStack(i).isEmpty()) {
-                // Move item to hotbar
-                mc.interactionManager.clickSlot(
-                    mc.player.currentScreenHandler.syncId,
-                    sourceSlot,
-                    i,
-                    SlotActionType.SWAP,
-                    mc.player
-                );
+                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, sourceSlot, i, SlotActionType.SWAP, mc.player);
                 shulkerSlot = i;
                 return;
             }
         }
 
-        // If no empty slot, swap with first hotbar slot
-        mc.interactionManager.clickSlot(
-            mc.player.currentScreenHandler.syncId,
-            sourceSlot,
-            0,
-            SlotActionType.SWAP,
-            mc.player
-        );
+        mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, sourceSlot, 0, SlotActionType.SWAP, mc.player);
         shulkerSlot = 0;
     }
 
@@ -379,37 +502,23 @@ public class ShulkerBoxItemFetcher extends Module {
             return;
         }
 
-        // First, look at the shulker box
         if (!hasRotated) {
             lookAtBlock(shulkerPos);
             hasRotated = true;
             if (logActions.get()) info("Looking at shulker box: " + shulkerPos.toShortString());
-            return; // Wait one tick for rotation to complete
+            return;
         }
 
-        // Wait a few ticks after rotation to ensure it's complete
-        if (stateTimeout < 3) {
-            return; // Wait 3 ticks after rotation
-        }
+        if (stateTimeout < 3) return;
 
-        // Now right-click on the shulker box to open it
-
-
-        // Ensure the target position is actually a shulker box
         Block block = mc.world.getBlockState(shulkerPos).getBlock();
         if (!(block instanceof ShulkerBoxBlock)) {
             warning("Target position is not a shulker box: " + shulkerPos.toShortString());
             return;
         }
 
-        // Calculate click position
         Vec3d hitVec = Vec3d.ofCenter(shulkerPos);
-        Direction side = Direction.UP; // Default to clicking from top
-
-        // Create block hit result
-        BlockHitResult hitResult = new BlockHitResult(hitVec, side, shulkerPos, false);
-
-        // Right-click the shulker box
+        BlockHitResult hitResult = new BlockHitResult(hitVec, Direction.UP, shulkerPos, false);
         mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, hitResult);
 
         changeState(State.EXTRACTING_ITEMS);
@@ -419,63 +528,93 @@ public class ShulkerBoxItemFetcher extends Module {
     private void extractItems() {
         if (logActions.get()) info("Extracting items...");
 
-        // Check if container screen is open
         if (mc.currentScreen == null) {
-            if (logActions.get()) info("Waiting for container screen to open... (screen is null)");
+            if (logActions.get()) info("Waiting for container screen to open...");
             return;
         }
 
         if (!(mc.currentScreen instanceof HandledScreen<?> containerScreen)) {
-            if (logActions.get())
-                info("Waiting for container screen to open... (current screen: " + mc.currentScreen.getClass().getSimpleName() + ")");
+            if (logActions.get()) info("Waiting for container screen... (" + mc.currentScreen.getClass().getSimpleName() + ")");
             return;
         }
 
         var screenHandler = containerScreen.getScreenHandler();
-
         if (logActions.get()) info("Container screen opened: " + containerScreen.getClass().getSimpleName());
 
-        // Count empty slots in player inventory (excluding hotbar slot 0 which we want to keep)
-        int emptySlots = countEmptyInventorySlots();
-        if (emptySlots <= 1) {
-            if (logActions.get()) info("Not enough inventory space, keeping only one empty slot");
+        Item itemToExtract = currentTargetItem;
+        if (itemToExtract == null) {
+            error("No target item selected");
             changeState(State.CLOSING_CONTAINER);
             return;
         }
 
-        // Extract target items from container
-        boolean foundItems = false;
-        int containerSlots = screenHandler.slots.size() - 36; // Container slots only (excluding player inventory)
+        int targetThreshold = getTargetThreshold(itemToExtract);
+        int maxStack = itemToExtract.getMaxCount();
+        int currentCount = countTargetItemInInventory(itemToExtract);
+        int neededCount = Math.max(0, targetThreshold - currentCount);
 
-        if (logActions.get()) {
-            info("Container slots: " + containerSlots + ", Total slots: " + screenHandler.slots.size());
+        if (logActions.get() && take.get() && smartTake.get()) {
+            info("Target: " + itemToExtract.getName().getString() + " | Have: " + currentCount + " | Need: " + neededCount + " | Threshold: " + targetThreshold);
         }
+
+        int emptySlots = countEmptyInventorySlots();
+        if (emptySlots <= 1) {
+            if (logActions.get()) info("Not enough inventory space");
+            changeState(State.CLOSING_CONTAINER);
+            return;
+        }
+
+        int canTakeCount = emptySlots * maxStack;
+        int maxTakeCount = Math.min(canTakeCount, neededCount);
+
+        if (take.get() && smartTake.get() && neededCount <= 0) {
+            if (logActions.get()) info("Already have enough items");
+            changeState(State.CLOSING_CONTAINER);
+            return;
+        }
+
+        boolean foundItems = false;
+        int containerSlots = screenHandler.slots.size() - 36;
+        int totalExtracted = 0;
+
+        if (logActions.get()) info("Container slots: " + containerSlots);
 
         for (int i = 0; i < containerSlots; i++) {
             ItemStack stack = screenHandler.getSlot(i).getStack();
             if (logActions.get() && !stack.isEmpty()) {
                 info("Slot " + i + ": " + stack.getItem().getName().getString() + " x" + stack.getCount());
             }
+            if (debugMode.get() && !stack.isEmpty()) debugItemStack(stack, i);
 
-            if (!stack.isEmpty() && stack.getItem() == targetItem.get()) {
-                // Click to take the item
-                mc.interactionManager.clickSlot(
-                    screenHandler.syncId,
-                    i,
-                    0,
-                    SlotActionType.QUICK_MOVE,
-                    mc.player
-                );
-                foundItems = true;
+            if (!stack.isEmpty() && stack.getItem() == itemToExtract) {
+                int wouldBeTotal = totalExtracted + stack.getCount();
 
-                if (logActions.get()) {
-                    info("Extracted " + stack.getCount() + " " + stack.getName().getString());
+                if (take.get() && smartTake.get() && totalExtracted >= maxTakeCount) {
+                    if (logActions.get()) info("Reached target threshold");
+                    break;
                 }
 
-                // Check if we have enough space for more items
+                if (take.get() && smartTake.get() && wouldBeTotal > maxTakeCount) {
+                    if (logActions.get()) info("Skipping slot " + i + ": " + stack.getItem().getName().getString() + " x" + stack.getCount() + " (would exceed threshold: " + wouldBeTotal + " > " + maxTakeCount + ")");
+                    continue;
+                }
+
+                mc.interactionManager.clickSlot(screenHandler.syncId, i, 0, SlotActionType.QUICK_MOVE, mc.player);
+                foundItems = true;
+                totalExtracted += stack.getCount();
+
+                if (logActions.get()) info("Extracted " + stack.getCount() + " " + stack.getName().getString() + " (Total: " + totalExtracted + "/" + maxTakeCount + ")");
+
                 emptySlots = countEmptyInventorySlots();
                 if (emptySlots <= 1) {
-                    if (logActions.get()) info("Not enough inventory space, stopping extraction");
+                    if (logActions.get()) info("Not enough inventory space");
+                    break;
+                }
+
+                currentCount = countTargetItemInInventory(itemToExtract);
+                neededCount = Math.max(0, targetThreshold - currentCount);
+                if (take.get() && smartTake.get() && neededCount <= 0) {
+                    if (logActions.get()) info("Reached target threshold for " + itemToExtract.getName().getString());
                     break;
                 }
             }
@@ -483,16 +622,121 @@ public class ShulkerBoxItemFetcher extends Module {
 
         if (!foundItems) {
             if (logActions.get()) info("No more target items in shulker box");
+        }
+
+        if (take.get() && smartTake.get() && shulkerBoxItem != null) {
+            Item nextNeededItem = findNeededItemInShulker(shulkerBoxItem);
+            if (nextNeededItem != null && nextNeededItem != currentTargetItem) {
+                if (logActions.get()) info("Found another needed item: " + nextNeededItem.getName().getString() + ", continuing extraction");
+                currentTargetItem = nextNeededItem;
+                foundItems = true;
+            } else {
+                if (logActions.get()) info("No more needed items in this shulker box");
+                changeState(State.CLOSING_CONTAINER);
+            }
+        } else {
             changeState(State.CLOSING_CONTAINER);
+        }
+    }
+
+    private int getTargetThreshold(Item item) {
+        if (!take.get() || !smartTake.get()) return Integer.MAX_VALUE;
+
+        if (item == Items.END_CRYSTAL) return crystalThreshold.get();
+        if (item == Items.EXPERIENCE_BOTTLE) return expThreshold.get();
+        if (item == Items.TOTEM_OF_UNDYING) return totemThreshold.get();
+        if (item == Items.GOLDEN_APPLE) return goldenAppleThreshold.get();
+        if (item == Items.SPLASH_POTION) return splashPotionThreshold.get();
+        if (item == Items.FIREWORK_ROCKET) return fireworkRocketThreshold.get();
+        if (item == Items.OBSIDIAN) return obsidianThreshold.get();
+        if (item == Items.COBWEB) return webThreshold.get();
+        if (item == Items.GLOWSTONE) return glowstoneThreshold.get();
+        if (item == Items.RESPAWN_ANCHOR) return anchorThreshold.get();
+        if (item == Items.ENDER_PEARL) return pearlThreshold.get();
+        if (item == Items.PISTON || item == Items.STICKY_PISTON) return pistonThreshold.get();
+        if (item == Items.REDSTONE_BLOCK) return redstoneThreshold.get();
+        if (item == Items.RED_BED) return bedThreshold.get();
+
+        return Integer.MAX_VALUE;
+    }
+
+    private int countTargetItemInInventory(Item item) {
+        int count = 0;
+        if (mc.player == null) return 0;
+
+        for (int i = 0; i < mc.player.getInventory().size(); i++) {
+            ItemStack stack = mc.player.getInventory().getStack(i);
+            if (!stack.isEmpty() && stack.getItem() == item) count += stack.getCount();
+        }
+        return count;
+    }
+
+    private void debugItemStack(ItemStack stack, int slot) {
+        if (stack.isEmpty()) return;
+
+        info("[DEBUG] Slot " + slot + ": " + stack.getItem().getName().getString() + " x" + stack.getCount() + " | MaxCount: " + stack.getMaxCount());
+
+        // 偵測玩家物品欄 NBT 數據
+        var inventory = mc.player.getInventory();
+        var result = new ArrayList<ItemStackData>();
+        int selectedSlot = inventory.selectedSlot;
+        for (int i = 0; i < inventory.size(); i++) {
+            var itemStack = inventory.getStack(i);
+            if (itemStack.getCount() > 0) {
+                result.add(ItemStackData.of(itemStack, OptionalInt.of(i), i == selectedSlot));
+            }
+        }
+        info("[DEBUG] Player Inventory: " + result.size() + " items");
+        for (ItemStackData data : result) {
+            info("[DEBUG]   " + data);
+        }
+
+        if (stack.contains(DataComponentTypes.DAMAGE)) {
+            info("[DEBUG] Damage: " + stack.get(DataComponentTypes.DAMAGE));
+        }
+
+        var components = stack.getComponents();
+        if (!components.isEmpty()) info("[DEBUG] Components count: " + components.size());
+
+        if (stack.contains(DataComponentTypes.CUSTOM_NAME)) {
+            info("[DEBUG] CustomName: " + stack.get(DataComponentTypes.CUSTOM_NAME));
+        }
+        if (stack.contains(DataComponentTypes.LORE)) {
+            info("[DEBUG] Lore: " + stack.get(DataComponentTypes.LORE));
+        }
+        if (stack.contains(DataComponentTypes.ENCHANTMENTS)) {
+            info("[DEBUG] Enchantments: " + stack.get(DataComponentTypes.ENCHANTMENTS));
+        }
+        if (stack.contains(DataComponentTypes.CONTAINER)) {
+            ContainerComponent container = stack.get(DataComponentTypes.CONTAINER);
+            if (container != null) {
+                int containerSize = container.stream().mapToInt(ItemStack::getCount).sum();
+                info("[DEBUG] Container items (total count): " + containerSize);
+                container.stream().forEach((itemStack) -> {
+                    if (!itemStack.isEmpty()) {
+                        info("[DEBUG]   - " + itemStack.getItem().getName().getString() + " x" + itemStack.getCount());
+                    }
+                });
+            }
+        }
+        if (stack.contains(DataComponentTypes.POTION_CONTENTS)) {
+            info("[DEBUG] Potion: " + stack.get(DataComponentTypes.POTION_CONTENTS));
+        }
+        if (stack.contains(DataComponentTypes.FOOD)) {
+            info("[DEBUG] Food: " + stack.get(DataComponentTypes.FOOD));
+        }
+        if (stack.contains(DataComponentTypes.UNBREAKABLE)) {
+            info("[DEBUG] Unbreakable: " + stack.get(DataComponentTypes.UNBREAKABLE));
+        }
+        if (stack.contains(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP)) {
+            info("[DEBUG] Hide tooltip: " + stack.get(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP));
         }
     }
 
     private int countEmptyInventorySlots() {
         int count = 0;
-        for (int i = 9; i < 36; i++) { // Main inventory slots only
-            if (mc.player.getInventory().getStack(i).isEmpty()) {
-                count++;
-            }
+        for (int i = 9; i < 36; i++) {
+            if (mc.player.getInventory().getStack(i).isEmpty()) count++;
         }
         return count;
     }
@@ -515,58 +759,30 @@ public class ShulkerBoxItemFetcher extends Module {
             return;
         }
 
-        // Check if the shulker box still exists
         if (mc.world.getBlockState(shulkerPos).isAir()) {
             if (logActions.get()) info("Shulker box no longer exists");
             changeState(State.PICKING_UP_SHULKER);
             baritone.getPathingBehavior().cancelEverything();
             return;
         }
-        // Look at the shulker box before breaking
+
         lookAtBlock(shulkerPos);
 
-        // 使用新的 BetterBlockPos 实例而不是 from() 方法来避免键值冲突
-        // 问题：BetterBlockPos.from() 可能创建与现有 BlockPos 键冲突的对象
-        // 解决：直接使用 BlockPos 坐标创建新的 BetterBlockPos 实例
         BetterBlockPos betterBlockPos = new BetterBlockPos(shulkerPos.getX(), shulkerPos.getY(), shulkerPos.getZ());
         baritone.getSelectionManager().addSelection(betterBlockPos, betterBlockPos);
         baritone.getBuilderProcess().clearArea(betterBlockPos, betterBlockPos);
 
         changeState(State.PICKING_UP_SHULKER);
         if (logActions.get()) info("Shulker box mining completed");
-
-        // Use the correct packet method to break the block
-//        if (stateTimeout == 0) {
-//            // Send start destroy packet
-//            mc.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(
-//                PlayerActionC2SPacket.Action.START_DESTROY_BLOCK,
-//                shulkerPos,
-//                Direction.UP
-//            ));
-//            if (debugMode.get()) info("Sending start mining packet: " + shulkerPos.toShortString());
-//        } else if (stateTimeout >= 10) { // Wait a few ticks then send stop packet
-//            // Send stop destroy packet
-//            mc.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(
-//                PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK,
-//                shulkerPos,
-//                Direction.UP
-//            ));
-//            if (debugMode.get()) info("Sending stop mining packet");
-//
-//        }
-        // Wait between start and stop packets
     }
 
     private void pickUpShulkerBox() {
         if (logActions.get()) info("Waiting to pick up shulker box...");
 
-        // Wait a few ticks for the item to drop and be picked up automatically
-        // Use stateTimeout to wait for a reasonable amount of time
-        if (stateTimeout > 20) { // Wait 1 second (20 ticks)
+        if (stateTimeout > 20) {
             changeState(State.FINISHED);
             if (logActions.get()) info("Pickup wait completed");
         }
-        // Otherwise stay in this state and wait
     }
 
     private void finishProcess() {
@@ -590,20 +806,18 @@ public class ShulkerBoxItemFetcher extends Module {
         isProcessing = false;
         stateTimeout = 0;
         hasRotated = false;
+        currentTargetItem = null;
 
         baritone.getSelectionManager().removeAllSelections();
         baritone.getPathingBehavior().cancelEverything();
-
     }
 
     private void changeState(State newState) {
         if (currentState != newState) {
-            if (debugMode.get()) {
-                info("State change: " + currentState.name() + " -> " + newState.name());
-            }
+            if (debugMode.get()) info("State change: " + currentState.name() + " -> " + newState.name());
             currentState = newState;
-            stateTimeout = 0; // Reset timeout when changing state
-            hasRotated = false; // Reset rotation flag when changing state
+            stateTimeout = 0;
+            hasRotated = false;
         }
     }
 
@@ -617,8 +831,6 @@ public class ShulkerBoxItemFetcher extends Module {
         float yaw = (float) (MathHelper.atan2(direction.z, direction.x) * 180.0 / Math.PI) - 90.0f;
         float pitch = (float) -(MathHelper.atan2(direction.y, Math.sqrt(direction.x * direction.x + direction.z * direction.z)) * 180.0 / Math.PI);
 
-//        mc.player.setYaw(yaw);
-//        mc.player.setPitch(pitch);
         Rotations.rotate(yaw, pitch);
         if (debugMode.get()) {
             info("Looking at block: " + pos.toShortString() + " (yaw: " + String.format("%.1f", yaw) + ", pitch: " + String.format("%.1f", pitch) + ")");
