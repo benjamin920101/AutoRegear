@@ -489,7 +489,7 @@ public class ShulkerBoxItemFetcher extends Module {
 
     private int countEmptyInventorySlots() {
         int count = 0;
-        for (int i = 9; i < 36; i++) { // Main inventory slots only
+        for (int i = 0; i < 36; i++) { // Main inventory slots only
             if (mc.player.getInventory().getStack(i).isEmpty()) {
                 count++;
             }
